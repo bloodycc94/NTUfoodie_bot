@@ -1,1 +1,1 @@
-worker: python foodbot/main.py
+web: python main.py
