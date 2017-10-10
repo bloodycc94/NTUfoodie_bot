@@ -1,0 +1,8 @@
+telepot
+urllib3
+yweather
+python3-weather-api
+weather-api
+openweather
+telegram
+beautifulsoup4
