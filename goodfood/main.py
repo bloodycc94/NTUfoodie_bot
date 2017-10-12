@@ -279,7 +279,7 @@ class ntuBot(telepot.helper.ChatHandler):
         bot.answerCallbackQuery(query_id)
 
 #Implement DelegatorBot
-bot = DelegatorBot('418210043:AAF27en_VMJFhVwCm7tMA7PpzwsFT6DEoRg', [
+bot = DelegatorBot('438517093:AAG3owJVduu_tFma_0jL_YayBuEd4BidkrY', [
     pave_event_space()
     (per_chat_id(), create_open, ntuBot, timeout=300)
 ])
