@@ -1,1 +1,1 @@
-worker: python goodfood/main.py
+worker: python main.py
