@@ -1,49 +1,49 @@
 #function for filtering and sorting stalls based of Canteen or Cuisine
-import csv
+
+import os
+from urllib import parse
+import psycopg2
 
 def findstall(option, choice):
 
     if (option == "Canteen"):
         #Canteen input of each rating is stored in the 1st column(index 0)
         select = 0
-        #Cuisince tyoe of each rating is stored in the 2nd column(index 1)
+        #Cuisine type of each rating is stored in the 2nd column(index 1)
         sel = 1
     elif (option == "Cuisine"):
         #Cuisince tyoe of each rating is stored in the 2nd column(index 1)
         select = 1
         #Canteen input of each rating is stored in the 1st column(index 0)
         sel = 0
-              
-    with open('reviews.csv') as f:
-        reader = csv.reader(f)
-        data_as_list = list(reader)
-
+    #conn_string = "host='155.69.160.69' dbname='postgres' user='postgres' password='Password1'"
+    conn_string = "host='ec2-54-225-237-64.compute-1.amazonaws.com' dbname='d7dkk1sep0usei' user='gdzxodktfaiogm' password='a4ad4ecd6b25911c8eea09b601378a27e0a00210b42a27f9d2b953a69f81f43c'"
+    conn = psycopg2.connect(conn_string)
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM store")
+    data_as1 = list(cursor.fetchall())
+    cursor.execute("SELECT * FROM reviews")
+    data_as_list = list(cursor.fetchall())
+    data_as = [list(row) for row in data_as1]
+    
     counter = 0
     plist = []
 
+    
     for i in range(0, len(data_as_list)):
         #find reviews of stalls matching selected canteen/cuisine
         if (data_as_list[i][select] == choice):
-            plist.append([])
-            plist[counter]=(data_as_list[i])
-            counter = counter + 1
+            plist.append(data_as_list[i])
         i = i + 1
 
-    counter = 0
     mlist = []
-
-    with open('stalls.csv') as f:
-        reader = csv.reader(f)
-        data_as = list(reader)
 
     for i in range(0, len(data_as)):
         #find stalls matching selected canteen/cuisine
         if (data_as[i][select] == choice):
-            mlist.append([])
-            mlist[counter]=(data_as[i])
-            counter = counter + 1
+            mlist.append(data_as[i])
         i = i + 1
-
+    
 
     #compute average ratings of particular store
     for i in range (0,len(mlist)):
@@ -51,7 +51,7 @@ def findstall(option, choice):
         mlist[i][5] = float(mlist[i][5])
         for k in range (0,len(plist)):
             #match each review to stall by checking both location and store name matches
-            if ((mlist[i][sel] == plist[k][sel])&(mlist[i][2] == plist[k][2])):
+            if ((mlist[i][0] == plist[k][0])&(mlist[i][2] == plist[k][2])):
                 #add particular rating to overall rating of stall
                 mlist[i][4] = (mlist[i][4]) + float(plist[k][3])
                 #increase number of people that rated for the particular stall
