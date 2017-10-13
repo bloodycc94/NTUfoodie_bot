@@ -258,7 +258,7 @@ class ntuBot(telepot.helper.ChatHandler):
 
 # bootstrap the bot and spawn the cat
 # TODO: 4.1.3 Implement DelegatorBot #################################################
-bot = DelegatorBot('442165685:AAHSNlvMc4CzsBVgXJv2kExQ3rCB9DJ_uAg', [
+bot = DelegatorBot('465323177:AAEqS51N3IDG5e9smMx1It4FPuzuRMbcKjA', [
     pave_event_space()
     (per_chat_id(), create_open, ntuBot, timeout=300)
 ])
