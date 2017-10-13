@@ -1,10 +1,12 @@
+import os
+from urllib import parse
+import psycopg2
 import urllib
 import time, telepot
 from telepot.loop import MessageLoop
 from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
 from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton
 from findstall import findstall
-import csv
 from rate import rate
 from weather import Weather
 import yweather
@@ -40,15 +42,15 @@ class ntuBot(telepot.helper.ChatHandler):
                     weather = Weather()
 
                     # Lookup WOEID via http://weather.yahoo.com.
-
                     client = yweather.Client()
                     Singapore_NTU = client.fetch_woeid('Nanyang Technological University')
                     lookup = weather.lookup(Singapore_NTU)
                     condition = lookup.condition()
                     response = "Current Weather in NTU: " + condition['text'] + '\n\nRating Stalls or Finding Food? \nTo Rate a Stall, enter /rate\nTo Find Food, enter /find \n\nTo view all commands, enter /list'
                     bot.sendMessage(chat_id, response)
+
                 elif (command == 'list'):
-                    #display list of avaiable commands
+                    #dispaly list of avaiable commands
                     response = 'Here are a list of all available commands: \n/start Begin your food journey! \n/rate Rate your dining experience at stall! \n/find Find delicious food by location or cuisine! \n/feedback Send any feedback, queries or errors spotted to us! \n/quit Exit what you are doing'
                     bot.sendMessage(chat_id, response)
                 elif (command == 'feedback'):
@@ -78,10 +80,12 @@ class ntuBot(telepot.helper.ChatHandler):
                 bot.sendMessage(chat_id, "Hi, please enter /start to begin! \n\nFor feedback, please enter \n/feedback \n\nTo exit at anytime, enter /quit")
             elif(self.state == 1):
                 self.check = 0
-                with open('stalls.csv') as f:
-                    reader = csv.reader(f)
-                    rlist = list(reader)
-                    
+                conn_string = "host='ec2-54-225-237-64.compute-1.amazonaws.com' dbname='d7dkk1sep0usei' user='gdzxodktfaiogm' password='a4ad4ecd6b25911c8eea09b601378a27e0a00210b42a27f9d2b953a69f81f43c'"
+                conn = psycopg2.connect(conn_string)
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM store")
+                rlist = cursor.fetchall()
+
                 #check if user input for canteen is valid (matches with that in master list from database table "store")
                 for i in range(len(rlist)):
                     if(msg_text == rlist[i][0]):
@@ -99,8 +103,8 @@ class ntuBot(telepot.helper.ChatHandler):
                     RM = ReplyKeyboardMarkup(one_time_keyboard=True, keyboard=[[KeyboardButton(text=stall)] for stall in self.stall])
 
                     bot.sendMessage(chat_id,otpt, reply_markup = RM)
-                    self.state = 2
-                 #if input invalid, stay at current state and prompt user for input of canteen again
+                    self.state = 2    
+                #if input invalid, stay at current state and prompt user for input of canteen again
                 else:
                     canlist = ['Canteen 1', 'Canteen 2', 'Canteen 4', 'Canteen 9', 'Canteen 11', 'Canteen 13', 'Canteen 14', 'Canteen 16', 'Koufu', 'NIE Canteen',
                                'North Hill Canteen', 'North Spine Foodcourt', 'Pioneer Canteen'] 
@@ -108,8 +112,10 @@ class ntuBot(telepot.helper.ChatHandler):
                                                                keyboard=[[KeyboardButton(text=i)]for i in canlist])
                     bot.sendMessage(chat_id, 'Choose Canteen', reply_markup= rm)
                     self.state = 1
+                    
             elif(self.state == 2):
                 self.check = 0
+                #check if user input of stall is valid
                 for i in range(len(self.stall)):
                     if(msg_text == self.stall[i]):
                         self.check = 1
@@ -133,8 +139,8 @@ class ntuBot(telepot.helper.ChatHandler):
                     self.state = 3
                     bot.sendMessage(chat_id, "Input Ratings" , reply_markup = ReplyKeyboardMarkup(one_time_keyboard=True, keyboard=[[KeyboardButton(text=rating)] for rating in ['5','4','3','2','1']]))
             elif(self.state == 4):
-                response = str(msg_text) + '\nUserID : ' + str(chat_id)
                 #send feedback and userid to the admin and return to initial state
+                response = str(msg_text) + '\nUserID : ' + str(chat_id)
                 bot.sendMessage(408469886, response)
                 bot.sendMessage(chat_id, 'Thank you, your feedback was recorded!')
                 self.state = 0
@@ -145,9 +151,10 @@ class ntuBot(telepot.helper.ChatHandler):
         #Handle Callback Query
         inline_message_id = msg['message']['chat']['id'], msg['message']['message_id']
         bot.editMessageReplyMarkup(inline_message_id, reply_markup=None)
-        
+
         #for finding stalls by location, provide list of canteens for user to choose from
         if(query_data=='can'):
+            #choice1="Canteen"
             canteen_keyboard = InlineKeyboardMarkup(inline_keyboard=[
                         [InlineKeyboardButton(text='Canteen 1', callback_data='can1')],
                         [InlineKeyboardButton(text='Canteen 2', callback_data='can2')],
@@ -162,7 +169,6 @@ class ntuBot(telepot.helper.ChatHandler):
                         [InlineKeyboardButton(text='North Hill Canteen', callback_data='nhcan')],
                         [InlineKeyboardButton(text='North Spine Food Court', callback_data='nspine')],
                         [InlineKeyboardButton(text='Pioneer Canteen', callback_data='piocan')],])
-            
 
             bot.sendMessage(from_id, "Select Canteen", reply_markup = canteen_keyboard)
         #thereafter, use findstall.py to output list of filtered and sorted stalls in selected canteen
@@ -205,8 +211,8 @@ class ntuBot(telepot.helper.ChatHandler):
         elif(query_data=='piocan'):
             response = findstall("Canteen","Pioneer Canteen")
             bot.sendMessage(from_id, response)
-            
-        #for finding stalls by cuisine, provide list of cuisine types for user to choose from    
+
+        #for finding stalls by cuisine, provide list of cuisine types for user to choose from
         elif(query_data=='cui'):
             cuisine_keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="Drinks", callback_data="cui1")],
@@ -225,7 +231,7 @@ class ntuBot(telepot.helper.ChatHandler):
                 [InlineKeyboardButton(text="Thai", callback_data="cui14")],
                 [InlineKeyboardButton(text="Vietnamese", callback_data="cui15")],])
             bot.sendMessage(from_id, "Select Cuisine", reply_markup = cuisine_keyboard)
-            
+
         #thereafter, use findstall.py to output list of filtered and sorted stalls for selected cuisine
         elif(query_data=='cui1'):
             response = findstall("Cuisine","Drinks")
@@ -278,7 +284,7 @@ class ntuBot(telepot.helper.ChatHandler):
         bot.answerCallbackQuery(query_id)
 
 #Implement DelegatorBot
-bot = DelegatorBot('465323177:AAEqS51N3IDG5e9smMx1It4FPuzuRMbcKjA', [
+bot = DelegatorBot('442165685:AAHSNlvMc4CzsBVgXJv2kExQ3rCB9DJ_uAg', [
     pave_event_space()
     (per_chat_id(), create_open, ntuBot, timeout=300)
 ])
